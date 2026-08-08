@@ -223,14 +223,15 @@ func Build(
 			targetOS = "linux"
 		}
 
-		// Resolve dependency directly from embedded JSON metadata, falling back to dependencyManager
-		dependency, err := resolveEmbeddedDependency(version, targetArch, targetOS)
+		// Priority 1: Resolve via dependencyManager using buildpack.toml (ensures offline packaging & caching compatibility)
+		dependency, err := dependencyManager.Resolve(
+			filepath.Join(context.CNBPath, "buildpack.toml"),
+			PNPMDependency,
+			version,
+			context.Stack)
 		if err != nil {
-			dependency, err = dependencyManager.Resolve(
-				filepath.Join(context.CNBPath, "buildpack.toml"),
-				PNPMDependency,
-				version,
-				context.Stack)
+			// Priority 2: Fall back to resolution directly from embedded JSON metadata
+			dependency, err = resolveEmbeddedDependency(version, targetArch, targetOS)
 			if err != nil {
 				return packit.BuildResult{}, fmt.Errorf("failed to resolve pnpm dependency: %w", err)
 			}
